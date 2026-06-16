@@ -419,6 +419,20 @@ Additional error cases:
 | Planning loop     | A tool returns unexpected data | The agent keeps the valid results already produced, explains that one step returned an unexpected result, and stops before passing unreliable data to another tool. |
 
 ---
+## Milestone 6: Final Verification
+
+The completed implementation matches the main design in this planning document:
+
+* The agent parses the natural-language query into a description, optional size, and optional maximum price.
+* The planning loop branches after `search_listings()` and stops early when no listings are returned.
+* The selected listing is stored in `session["selected_item"]` and passed directly into `suggest_outfit()`.
+* The returned outfit is stored in `session["outfit_suggestion"]` and passed directly into `create_fit_card()`.
+* The successful Gradio path populates all three output panels.
+* The no-results path displays an actionable error and leaves the outfit and fit-card panels empty.
+* All 22 automated tests pass.
+* The required failure modes were triggered manually and produced informative responses.
+
+The final README documents the tool interfaces, planning loop, state management, error handling, implementation reflection, and specific uses of AI assistance. The demo video shows a complete three-tool interaction, state passing, and the no-results branch.
 
 ## Architecture
 
