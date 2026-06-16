@@ -207,6 +207,11 @@ create_fit_card(outfit_suggestion, selected_item)
 
 The agent therefore does not call all three tools automatically. Each tool call depends on whether the previous tool returned valid and useful information.
 
+For query parsing, I use deterministic regular expressions rather than an
+additional LLM call. The parser extracts phrases such as `under $30` and
+`size M`, removes them from the query, and treats the remaining cleaned text
+as the listing description. This keeps parsing reproducible and avoids an
+extra API call.
 ---
 
 ## State Management
@@ -296,6 +301,100 @@ Information moves through the session as follows:
 The user does not need to re-enter the selected item or outfit because the session preserves the outputs of earlier tool calls.
 
 ---
+### Milestone 4 Implementation Notes
+
+#### Query Parsing
+
+I implemented deterministic query parsing with regular expressions rather than using an additional LLM call. The parser extracts optional constraints such as `under $30` and `size M`, removes those phrases from the query, and uses the remaining cleaned text as the listing description.
+
+For example:
+
+```text
+Input: vintage graphic tee under $30, size M
+Parsed:
+- description: vintage graphic tee
+- size: M
+- max_price: 30.0
+```
+
+This approach keeps parsing reproducible, fast, and inexpensive.
+
+#### Planning Loop
+
+The implemented planning loop follows these steps:
+
+1. Create a new session dictionary for the interaction.
+2. Parse the user query into `description`, `size`, and `max_price`.
+3. Call `search_listings()` and store the returned list in `session["search_results"]`.
+4. If the search returns no results, store a helpful message in `session["error"]` and return immediately.
+5. Otherwise, select the first ranked result and store it in `session["selected_item"]`.
+6. Pass that exact selected-item dictionary and `session["wardrobe"]` into `suggest_outfit()`.
+7. Store the returned text in `session["outfit_suggestion"]`.
+8. Pass the stored outfit suggestion and the same selected-item dictionary into `create_fit_card()`.
+9. Store the result in `session["fit_card"]` and return the completed session.
+
+The loop does not call all three tools unconditionally. Each step runs only when the previous step produced valid data.
+
+#### State Management
+
+The session dictionary is the single source of truth for one interaction. It contains:
+
+* `query`: original user query
+* `parsed`: extracted description, size, and maximum price
+* `search_results`: ranked matching listings
+* `selected_item`: the top-ranked listing
+* `wardrobe`: selected user wardrobe
+* `outfit_suggestion`: result returned by `suggest_outfit()`
+* `fit_card`: result returned by `create_fit_card()`
+* `error`: explanation when the loop terminates early
+* `status`: current or final interaction status
+* `tool_trace`: record of tools called during the interaction
+
+State is passed directly between tools. The selected listing is not recreated or hardcoded, and the outfit suggestion stored in the session is the same value passed into the fit-card tool.
+
+#### Branching Behavior
+
+The agent behaves differently depending on the search result:
+
+* When listings are found, the loop calls all three tools and produces a listing, outfit suggestion, and fit card.
+* When no listings are found, the loop stops after `search_listings()`. In this branch, `selected_item`, `outfit_suggestion`, and `fit_card` remain `None`.
+
+#### Verification
+
+I verified the implementation using automated and manual tests:
+
+* All 22 pytest tests passed.
+* The successful CLI path parsed the query, selected the correct listing, generated an outfit, and created a fit card.
+* The query `vintage graphic tee under $30, size M` selected the `Y2K Baby Tee — Butterfly Print` listing with size `S/M`.
+* The no-results query `designer ballgown size XXS under $5` returned an error and left the outfit and fit-card values empty.
+* The Gradio interface displayed all three outputs for a successful query and only the error panel for the no-results branch.
+
+#### AI Assistance
+
+I provided my planning-loop diagram, Planning Loop specification, and State Management specification to ChatGPT for implementation guidance. I reviewed the generated suggestions, integrated them into the starter structure, corrected the query parsing and function-call issues found during testing, and verified the final behavior with automated tests, CLI tests, and the Gradio interface.
+
+
+
+
+
+
+### Milestone 5: Failure-Mode Verification
+
+I deliberately triggered and verified the three required failure modes:
+
+1. **No matching listings:**
+   Searching for `designer ballgown size XXS under $5` returned an empty list. The full agent stored a specific and actionable message in `session["error"]`, left `selected_item`, `outfit_suggestion`, and `fit_card` as `None`, and stopped before calling the outfit and fit-card tools.
+
+2. **Empty wardrobe:**
+   Calling `suggest_outfit()` with an empty wardrobe returned useful general styling advice. The response clearly explained that the recommendations were not based on saved wardrobe items.
+
+3. **Empty outfit:**
+   Calling `create_fit_card()` with an empty outfit string returned a descriptive error message instead of raising a Python exception.
+
+I documented the no-results branch with a screenshot for the project demonstration.
+
+
+
 
 ## Error Handling
 
