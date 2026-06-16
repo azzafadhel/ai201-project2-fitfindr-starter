@@ -137,7 +137,23 @@ For each tool, describe the specific failure mode you're handling and what the a
 
 Write out what a full user interaction looks like from start to finish — tool call by tool call. Use a specific example query.
 
+
+FitFindr interprets the user’s request and first calls `search_listings()` using the requested item description, size, and maximum price. When a matching listing is found, the agent saves the selected item in the current session, passes it with the user’s wardrobe to `suggest_outfit()`, and then sends the resulting outfit to `create_fit_card()` to produce a shareable caption. If a search returns no useful matches or another tool fails, the agent explains what happened and either suggests changing the request or asks for the missing information instead of continuing with invalid data.
+
+
 **Example user query:** "I'm looking for a vintage graphic tee under $30. I mostly wear baggy jeans and chunky sneakers. What's out there and how would I style it?"
+
+
+
+**Example query:** “I’m looking for a vintage graphic tee under $30, size M. I mostly wear baggy jeans and chunky sneakers.”
+
+1. The agent extracts `"vintage graphic tee"` as the description, `"M"` as the size, and `30.0` as the maximum price.
+2. It calls `search_listings("vintage graphic tee", "M", 30.0)`.
+3. If matches are returned, the agent selects the strongest result and stores it as the current `new_item`.
+4. It passes `new_item` and the user’s wardrobe to `suggest_outfit()`.
+5. It stores the returned outfit suggestion and passes both the outfit and `new_item` to `create_fit_card()`.
+6. It returns the selected listing, outfit recommendation, and fit card to the user.
+7. If no listings are found, the agent tells the user that no items matched the current constraints, suggests broadening the description, size, or budget, and does not call the remaining tools.
 
 **Step 1:**
 <!-- What does the agent do first? Which tool is called? With what input? -->
