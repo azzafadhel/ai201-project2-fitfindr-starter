@@ -822,145 +822,93 @@ The implementation also added deterministic fallback responses for Groq failures
 
 ## AI Usage
 
-I used ChatGPT as an implementation assistant and reviewer. I reviewed, corrected, and tested all suggestions before integrating them into the project.
+I used ChatGPT as a supporting tool for brainstorming, code review, debugging, and test design. I remained responsible for the project architecture, implementation decisions, integration, corrections, and final verification. I did not use AI-generated suggestions without reviewing them against the project specification and testing them locally.
 
-### Instance 1: Implementing and testing the three tools
+### Instance 1: Assistance with the three tool implementations
 
-#### What I gave the AI
+#### What I provided to the AI tool
 
-I provided:
+I shared:
 
-* The original `tools.py` file
-* The three required function signatures
-* The TODO instructions for each tool
-* The listing dataset structure
-* The wardrobe schema
-* The tool specifications from `planning.md`
-* The required error behavior for each tool
+* The original `tools.py` starter file
+* The required function signatures
+* My Tool Specifications from `planning.md`
+* The listing and wardrobe data formats
+* The required success and failure behavior for each tool
 
-#### What the AI produced
+I asked for guidance on implementing keyword-based search, size matching, prompts for the two LLM-powered tools, and isolated tests.
 
-The AI proposed:
+#### How I used the assistance
 
-* Weighted keyword matching for `search_listings()`
-* Size normalization and combined-size matching
-* Groq prompts for outfit recommendations
-* Groq prompts for fit-card captions
-* Fallback behavior for external API errors
-* A `pytest` test suite for the three tools
+The AI suggested possible helper functions, prompt structures, and test cases. I reviewed those suggestions and integrated only the parts that matched my specification and the starter interfaces.
 
-#### What I changed or overrode
+I personally verified and corrected:
 
-I reviewed the code and corrected issues found during manual testing.
+* Loading the `.env` file from the project root
+* Matching requested size `M` with listing size `S/M`
+* Ranking relevant listings correctly
+* Handling empty descriptions and invalid prices
+* Returning useful results when the wardrobe is empty
+* Returning deterministic fallbacks when the Groq call fails
 
-I verified and adjusted:
+I manually ran each tool and created automated tests before connecting the tools through the agent.
 
-* Explicit `.env` loading
-* Size `M` matching a listing marked `S/M`
-* Listing ranking for the Y2K butterfly tee
-* Empty-input behavior
-* Fallback responses
-* Test expectations
+### Instance 2: Assistance with the planning loop and state management
 
-I manually tested each tool before connecting them through the agent.
+#### What I provided to the AI tool
 
----
+I shared:
 
-### Instance 2: Implementing the planning loop and state management
+* My Architecture Diagram
+* My Planning Loop specification
+* My State Management specification
+* The original `agent.py` and `app.py` TODOs
+* The required happy-path and no-results behaviors
 
-#### What I gave the AI
+I asked for implementation guidance that preserved the session structure, passed state directly between tools, and stopped early when no listings were returned.
 
-I provided:
+#### How I used the assistance
 
-* The complete planning-loop diagram
-* The Planning Loop section from `planning.md`
-* The State Management section
-* The original `agent.py`
-* The original `app.py`
-* The required successful and no-results behaviors
+The AI suggested a regex-based query parser, conditional branches, state updates, and tests for the agent and interface. I reviewed the suggestions against my planning document and incorporated them into the starter code.
 
-#### What the AI produced
+During implementation and testing, I identified and corrected:
 
-The AI proposed:
+* A parser issue that retained the unnecessary article `a`
+* A mocked function-call parameter mismatch
+* Markdown formatting accidentally copied into a Python test file
+* The exact state-passing behavior expected by the rubric
 
-* A regex-based query parser
-* A conditional planning loop
-* Session-state updates after each tool
-* Early returns after failures
-* A `tool_trace`
-* Gradio output mapping
-* Tests for state flow and branch behavior
+I verified that the selected listing stored in `session["selected_item"]` is the same object passed into `suggest_outfit()`, and that `session["outfit_suggestion"]` is passed directly into `create_fit_card()`.
 
-#### What I changed or overrode
+### Instance 3: Assistance with failure-mode testing
 
-During testing, I corrected:
+#### What I provided to the AI tool
 
-* A parsing issue that left the article `a` in the item description
-* A function-call mismatch revealed by the mocked state-passing test
-* Accidental Markdown formatting copied into a Python test file
+I shared the Milestone 5 failure requirements and described the error handling already implemented in my tools and planning loop.
 
-I then verified the final implementation with:
-
-* 22 automated tests
-* A successful CLI interaction
-* A no-results CLI interaction
-* A successful Gradio interaction
-* A no-results Gradio interaction
-
----
-
-### Instance 3: Testing failure modes
-
-#### What I gave the AI
-
-I provided the Milestone 5 failure-testing requirements and the completed tool behavior.
-
-#### What the AI produced
-
-The AI suggested terminal commands and assertions to deliberately trigger:
+I asked for test commands that would deliberately trigger:
 
 * No matching listings
 * An empty wardrobe
 * An empty outfit string
 
-#### What I changed or verified
+#### How I used the assistance
 
-I ran the commands directly and confirmed that the actual results matched the required behavior.
+The AI suggested commands and assertions for triggering these cases. I ran every command locally, examined the actual state returned by the agent, and confirmed that the behavior matched the specification.
 
-I documented the no-results branch with a screenshot showing that:
+I verified that the no-results branch:
 
-* The agent stored an informative error
-* The selected item remained `None`
-* The outfit remained `None`
-* The fit card remained `None`
-* Only the search tool appeared in the tool trace
+* Stores an actionable error message
+* Leaves `selected_item` as `None`
+* Leaves `outfit_suggestion` as `None`
+* Leaves `fit_card` as `None`
+* Stops after `search_listings()` instead of calling all tools
 
----
-
-## Demo Video
-
-The project demo is approximately three to five minutes and includes:
-
-* A complete successful interaction using all three tools
-* An explanation of the planning-loop decisions
-* Visible or narrated state passing
-* A deliberately triggered no-results failure
-* The agent’s graceful recovery message
-* The passing automated tests
-
-The demonstration uses this successful query:
-
-```text
-vintage graphic tee under $30, size M
-```
-
-The failure demonstration uses:
-
-```text
-designer ballgown size XXS under $5
-```
+I also ran the complete test suite and confirmed that all 22 tests passed.
 
 ---
+
+
 
 ## Where to Start
 
