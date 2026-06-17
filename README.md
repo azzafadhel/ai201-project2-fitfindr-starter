@@ -1,4 +1,4 @@
-# FitFindr — Starter Kit
+# FitFindr 
 
 This starter kit contains everything needed to build FitFindr, a tool-using AI agent for secondhand fashion.
 
@@ -475,6 +475,57 @@ Before calling a tool, the agent parses the query into:
 These values are stored in `session["parsed"]`.
 
 ---
+### Evidence That State Passes Between Tools
+
+The agent passes intermediate results through the session dictionary without asking the user to re-enter information.
+
+After the search:
+
+```python
+session["selected_item"] = session["search_results"][0]
+```
+
+The exact stored listing is passed into the outfit tool:
+
+```python
+outfit = suggest_outfit(
+    session["selected_item"],
+    session["wardrobe"],
+)
+session["outfit_suggestion"] = outfit
+```
+
+The exact stored outfit and the same selected listing are then passed into the fit-card tool:
+
+```python
+fit_card = create_fit_card(
+    session["outfit_suggestion"],
+    session["selected_item"],
+)
+session["fit_card"] = fit_card
+```
+
+The automated happy-path test verifies object identity with:
+
+```python
+new_item is item
+```
+
+This confirms that the listing returned by the search is the same listing object passed into the outfit and fit-card tools, rather than a recreated or hardcoded value.
+
+A successful tool trace is:
+
+```text
+search_listings → suggest_outfit → create_fit_card
+```
+
+For a no-results query, the trace contains only:
+
+```text
+search_listings
+```
+
+This demonstrates that the planning loop branches according to state and does not call all three tools unconditionally.
 
 ### Step 1 — Tool called
 
